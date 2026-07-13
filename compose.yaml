@@ -51,7 +51,7 @@ x-app-environment: &app-environment
 
 x-app-common: &app-common
   image: arzzaq-app:local
-  user: "10001:10001"
+  user: "0:0"
   init: true
   read_only: true
   restart: unless-stopped
@@ -72,6 +72,8 @@ x-app-common: &app-common
     - /tmp:uid=10001,gid=10001,mode=1770
   environment: *app-environment
   logging: *logging
+  labels:
+    io.arzzaq.runtime-user: "10001:10001"
 
 services:
   caddy:
@@ -215,8 +217,11 @@ services:
     pids_limit: 64
 
   postgres:
-    image: postgres:17.10-alpine3.22@sha256:b02d9b5bcf608c2719da32cdabee274a33841202487fd5dc9b065b63f886753f
-    user: "70:70"
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    image: arzzaq-postgres:local
+    user: "0:0"
     init: true
     read_only: true
     restart: unless-stopped
@@ -250,10 +255,15 @@ services:
     mem_limit: 2g
     pids_limit: 256
     logging: *logging
+    labels:
+      io.arzzaq.runtime-user: "70:70"
 
   redis:
-    image: redis:8.2.7-alpine3.22@sha256:223b183cbc49f5ff48728e1fc52ccf101f05072decad2bd9867281a3c9bf75fd
-    user: "999:999"
+    build:
+      context: .
+      dockerfile: docker/redis/Dockerfile
+    image: arzzaq-redis:local
+    user: "0:0"
     init: true
     read_only: true
     restart: unless-stopped
@@ -262,16 +272,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    command:
-      - sh
-      - -ec
-      - >-
-        exec redis-server
-        --appendonly yes
-        --appendfsync everysec
-        --maxmemory 512mb
-        --maxmemory-policy noeviction
-        --requirepass "$$(cat /run/secrets/redis_password)"
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
     secrets:
       - redis_password
     volumes:
@@ -290,6 +292,8 @@ services:
     mem_limit: 768m
     pids_limit: 128
     logging: *logging
+    labels:
+      io.arzzaq.runtime-user: "999:999"
 
 networks:
   edge:

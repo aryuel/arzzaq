@@ -31,12 +31,4 @@ for nama_secret in APP_KEY DB_PASSWORD REDIS_PASSWORD REVERB_APP_SECRET; do
     muat_secret "$nama_secret"
 done
 
-mkdir -p \
-    bootstrap/cache \
-    storage/app/private \
-    storage/framework/cache/data \
-    storage/framework/sessions \
-    storage/framework/views \
-    storage/logs
-
-exec "$@"
+exec su-exec arzzaq:arzzaq "$@"

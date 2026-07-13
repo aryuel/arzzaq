@@ -24,6 +24,8 @@ Hanya Caddy memiliki published port. PostgreSQL, Redis, Reverb, PHP-FPM, Horizon
 
 Semua service memakai root filesystem read-only, `no-new-privileges`, `cap_drop: ALL`, PID limit, memory limit, CPU limit, log rotation, healthcheck, dan graceful stop period. Directory runtime yang harus ditulis disediakan melalui named volume atau `tmpfs`. Docker socket tidak pernah dipasang ke container.
 
+Entrypoint aplikasi, PostgreSQL, dan Redis dimulai sebagai UID 0 tanpa Linux capability hanya untuk membaca file secret mode `0600`. Entrypoint segera mengganti proses melalui `su-exec` ke UID workload non-root sebelum PHP-FPM, PostgreSQL, Redis, Reverb, Horizon, atau scheduler dijalankan. Pola ini menjaga secret host tidak world-readable dan tidak menaruh nilainya pada image, Compose environment, maupun command line workload.
+
 Image resmi dipin dengan tag exact dan digest:
 
 - PHP 8.4.23 FPM Alpine;
@@ -32,6 +34,10 @@ Image resmi dipin dengan tag exact dan digest:
 - Caddy 2.11.4 Alpine;
 - PostgreSQL 17.10 Alpine;
 - Redis 8.2.7 LTS Alpine.
+
+Binary Caddy 2.11.4 dibangun ulang dari modul upstream menggunakan Go 1.26.5 karena image resmi 2.11.4 masih membawa standard library Go yang memiliki advisori dengan perbaikan tersedia. Package Alpine pada final image diperbarui saat build dan hasil akhirnya tetap wajib lulus scan image CI.
+
+Image PostgreSQL diturunkan dari image resmi 17.10 Alpine dan dijalankan langsung sebagai UID 70. Binary privilege-drop `gosu` dihapus karena tidak lagi diperlukan dan versi binary pada image upstream membawa standard library Go dengan advisori yang sudah memiliki perbaikan.
 
 PHP-FPM berjalan sebagai UID/GID `10001`. Redis dan PostgreSQL memakai user non-root milik image resmi. Caddy mendengarkan port non-privileged `8080/8443` di dalam container, lalu Docker memetakan port host `80/443`.
 

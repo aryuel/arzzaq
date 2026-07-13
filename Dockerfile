@@ -25,7 +25,7 @@ RUN set -eux; \
         libpq \
         libzip \
         oniguruma \
-        tini; \
+        su-exec; \
     apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         freetype-dev \
@@ -79,7 +79,7 @@ RUN set -eux; \
 ENV APP_ENV=production
 USER arzzaq:arzzaq
 EXPOSE 9000
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/arzzaq-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/arzzaq-entrypoint"]
 CMD ["php-fpm", "--nodaemonize"]
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \

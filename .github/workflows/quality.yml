@@ -152,10 +152,10 @@ jobs:
             perintah: docker build --tag arzzaq-caddy:ci --file docker/caddy/Dockerfile .
           - nama: postgres
             tag: arzzaq-postgres:ci
-            perintah: docker pull postgres:17.10-alpine3.22@sha256:b02d9b5bcf608c2719da32cdabee274a33841202487fd5dc9b065b63f886753f && docker tag postgres:17.10-alpine3.22@sha256:b02d9b5bcf608c2719da32cdabee274a33841202487fd5dc9b065b63f886753f arzzaq-postgres:ci
+            perintah: docker build --tag arzzaq-postgres:ci --file docker/postgres/Dockerfile .
           - nama: redis
             tag: arzzaq-redis:ci
-            perintah: docker pull redis:8.2.7-alpine3.22@sha256:223b183cbc49f5ff48728e1fc52ccf101f05072decad2bd9867281a3c9bf75fd && docker tag redis:8.2.7-alpine3.22@sha256:223b183cbc49f5ff48728e1fc52ccf101f05072decad2bd9867281a3c9bf75fd arzzaq-redis:ci
+            perintah: docker build --tag arzzaq-redis:ci --file docker/redis/Dockerfile .
     steps:
       - name: Ambil source code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

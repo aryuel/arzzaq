@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const layananWajib = ['app', 'caddy', 'horizon', 'postgres', 'redis', 'reverb', 'scheduler'];
 
@@ -37,8 +38,25 @@ for (const nama of layananWajib) {
         gagal(`root filesystem ${nama} harus read-only`);
     }
 
-    if (layanan.user === undefined || /^(0|root)(:|$)/.test(String(layanan.user))) {
+    const runtimeUser = layanan.labels?.['io.arzzaq.runtime-user'] ?? layanan.user;
+    if (runtimeUser === undefined || /^(0|root)(:|$)/.test(String(runtimeUser))) {
         gagal(`${nama} harus berjalan sebagai user non-root eksplisit`);
+    }
+
+    if (/^(0|root)(:|$)/.test(String(layanan.user ?? ''))) {
+        const entrypointByService = {
+            app: 'docker/app/entrypoint.sh',
+            horizon: 'docker/app/entrypoint.sh',
+            postgres: 'docker/postgres/entrypoint.sh',
+            redis: 'docker/redis/entrypoint.sh',
+            reverb: 'docker/app/entrypoint.sh',
+            scheduler: 'docker/app/entrypoint.sh',
+        };
+        const entrypoint = entrypointByService[nama];
+
+        if (entrypoint === undefined || !readFileSync(entrypoint, 'utf8').includes('exec su-exec ')) {
+            gagal(`${nama} harus segera menurunkan privilege melalui entrypoint`);
+        }
     }
 
     if (!layanan.security_opt?.includes('no-new-privileges:true')) {
@@ -82,11 +100,12 @@ for (const nama of ['postgres', 'redis']) {
     }
 }
 
-for (const nama of ['postgres', 'redis']) {
-    const image = konfigurasi.services[nama].image ?? '';
+for (const dockerfile of ['Dockerfile', 'docker/caddy/Dockerfile', 'docker/postgres/Dockerfile', 'docker/redis/Dockerfile']) {
+    const content = readFileSync(dockerfile, 'utf8');
+    const fromLines = content.split(/\r?\n/).filter((line) => /^FROM\s+/i.test(line));
 
-    if (!image.includes('@sha256:')) {
-        gagal(`image ${nama} harus dipin dengan digest`);
+    if (fromLines.length === 0 || fromLines.some((line) => !line.includes('@sha256:'))) {
+        gagal(`seluruh base image pada ${dockerfile} harus dipin dengan digest`);
     }
 }
 
