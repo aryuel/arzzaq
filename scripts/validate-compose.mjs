@@ -67,6 +67,18 @@ for (const nama of layananWajib) {
         gagal(`${nama} harus melepas seluruh Linux capability`);
     }
 
+    const capabilities = layanan.cap_add ?? [];
+    const capabilityDiizinkan = /^(0|root)(:|$)/.test(String(layanan.user ?? ''))
+        ? ['DAC_READ_SEARCH']
+        : [];
+
+    if (
+        capabilities.length !== capabilityDiizinkan.length
+        || capabilities.some((capability) => !capabilityDiizinkan.includes(capability))
+    ) {
+        gagal(`${nama} memiliki Linux capability di luar kebutuhan bootstrap secret`);
+    }
+
     if (layanan.healthcheck === undefined) {
         gagal(`${nama} harus memiliki healthcheck`);
     }

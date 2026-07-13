@@ -60,6 +60,8 @@ x-app-common: &app-common
     - no-new-privileges:true
   cap_drop:
     - ALL
+  cap_add:
+    - DAC_READ_SEARCH
   secrets:
     - app_key
     - db_password
@@ -230,6 +232,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - DAC_READ_SEARCH
     environment:
       POSTGRES_DB: ${DB_DATABASE:-arzzaq}
       POSTGRES_USER: ${DB_USERNAME:-arzzaq_app}
@@ -272,6 +276,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - DAC_READ_SEARCH
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_password
     secrets:
