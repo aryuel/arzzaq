@@ -1,0 +1,16 @@
+# Local product and technical design context.
+# These documents may contain sensitive operational and security details and
+# must never be committed to this repository.
+/context/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local tooling and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
