@@ -61,6 +61,7 @@ x-app-common: &app-common
   cap_drop:
     - ALL
   cap_add:
+    - CHOWN
     - DAC_READ_SEARCH
     - SETGID
     - SETUID
@@ -191,7 +192,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: [CMD, php, artisan, horizon:status]
+      test: [CMD-SHELL, "export REDIS_PASSWORD=\"$$(cat /run/secrets/redis_password)\" && php artisan horizon:status"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -291,7 +292,7 @@ services:
     volumes:
       - redis_data:/data
     tmpfs:
-      - /tmp:uid=1000,gid=1000,mode=1770
+      - /tmp:uid=999,gid=1000,mode=1770
     networks:
       data: {}
     healthcheck:
@@ -305,7 +306,7 @@ services:
     pids_limit: 128
     logging: *logging
     labels:
-      io.arzzaq.runtime-user: "1000:1000"
+      io.arzzaq.runtime-user: "999:1000"
 
 networks:
   edge:

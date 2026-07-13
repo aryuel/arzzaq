@@ -2,6 +2,15 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const layananWajib = ['app', 'caddy', 'horizon', 'postgres', 'redis', 'reverb', 'scheduler'];
+const penggunaRuntimeWajib = {
+    app: '10001:10001',
+    caddy: '1000:1000',
+    horizon: '10001:10001',
+    postgres: '70:70',
+    redis: '999:1000',
+    reverb: '10001:10001',
+    scheduler: '10001:10001',
+};
 
 const gagal = (pesan) => {
     throw new Error(`Validasi infrastruktur gagal: ${pesan}`);
@@ -43,6 +52,10 @@ for (const nama of layananWajib) {
         gagal(`${nama} harus berjalan sebagai user non-root eksplisit`);
     }
 
+    if (String(runtimeUser) !== penggunaRuntimeWajib[nama]) {
+        gagal(`${nama} harus turun ke UID:GID ${penggunaRuntimeWajib[nama]}, bukan ${runtimeUser}`);
+    }
+
     if (/^(0|root)(:|$)/.test(String(layanan.user ?? ''))) {
         const entrypointByService = {
             app: 'docker/app/entrypoint.sh',
@@ -68,8 +81,14 @@ for (const nama of layananWajib) {
     }
 
     const capabilities = layanan.cap_add ?? [];
-    const capabilityDiizinkan = /^(0|root)(:|$)/.test(String(layanan.user ?? ''))
-        ? ['DAC_READ_SEARCH', 'SETGID', 'SETUID']
+    const bootstrapRoot = /^(0|root)(:|$)/.test(String(layanan.user ?? ''));
+    const capabilityDiizinkan = bootstrapRoot
+        ? [
+            ...(nama === 'postgres' || nama === 'redis' ? [] : ['CHOWN']),
+            'DAC_READ_SEARCH',
+            'SETGID',
+            'SETUID',
+        ]
         : [];
 
     if (

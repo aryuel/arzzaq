@@ -27,7 +27,13 @@
 	reverse_proxy @reverb reverb:8080
 
 	@health path /healthz
-	rewrite @health /up
+	route @health {
+		rewrite * /up
+		php_fastcgi app:9000 {
+			env REQUEST_URI /up
+			capture_stderr
+		}
+	}
 
 	header {
 		-Server
@@ -51,7 +57,7 @@
 		format filter {
 			wrap json
 			fields {
-				request>uri regexp "\\?.*$" "?[REDACTED]"
+				request>uri regexp \?.*$ ?[REDACTED]
 			}
 		}
 	}

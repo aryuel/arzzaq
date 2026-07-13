@@ -27,6 +27,13 @@ muat_secret() {
 
 umask 027
 
+# Docker membuat pipe stdout/stderr sebelum entrypoint turun dari root. PHP-FPM
+# membuka ulang stderr saat validasi konfigurasi, sehingga inode pipe perlu
+# dimiliki workload non-root terlebih dahulu.
+if [ "$(id -u)" -eq 0 ]; then
+    chown arzzaq:arzzaq /proc/self/fd/1 /proc/self/fd/2
+fi
+
 for nama_secret in APP_KEY DB_PASSWORD REDIS_PASSWORD REVERB_APP_SECRET; do
     muat_secret "$nama_secret"
 done

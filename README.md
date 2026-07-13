@@ -6,7 +6,7 @@ Sistem dirancang aktif sekitar Ramadan dan Idulfitri, lalu infrastrukturnya dino
 
 ## Status Pengembangan
 
-Fase 0 dan Fase 1 telah selesai. Repository saat ini berada pada Fase 2: infrastruktur Docker Compose yang menyerupai production, container hardening, isolasi jaringan, healthcheck, dan quality gate image. Migration domain, autentikasi, dan UI produk belum diimplementasikan pada fase ini.
+Fase 0, Fase 1, dan Fase 2 telah selesai. Infrastruktur Docker Compose lokal kini menyerupai production, di-hardening, terisolasi, memiliki healthcheck, serta lulus quality gate source dan image. Tahap berikutnya adalah Fase 3: database, migration, dan integritas data. Autentikasi serta UI produk belum diimplementasikan pada fase ini.
 
 ## Peran Pengguna
 

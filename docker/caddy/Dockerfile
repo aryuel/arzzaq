@@ -17,6 +17,6 @@ COPY --from=caddy-builder /go/bin/caddy /usr/bin/caddy
 COPY public /srv/app/public
 COPY --from=frontend /build/public/build /srv/app/public/build
 COPY docker/caddy/Caddyfile.local /etc/caddy/Caddyfile
-USER caddy:caddy
+USER 1000:1000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
     CMD wget --no-check-certificate --quiet --spider https://localhost:8443/healthz || exit 1

@@ -14,7 +14,17 @@ $secretDirectory = Join-Path $PSScriptRoot '..\docker\secrets'
 New-Item -ItemType Directory -Force -Path $secretDirectory | Out-Null
 
 function New-RandomSecret([int] $Bytes = 48) {
-    return [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes($Bytes))
+    $buffer = New-Object byte[] $Bytes
+    $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
+
+    try {
+        $generator.GetBytes($buffer)
+    }
+    finally {
+        $generator.Dispose()
+    }
+
+    return [Convert]::ToBase64String($buffer)
 }
 
 function Set-SecretIfMissing([string] $Name, [string] $Value) {
