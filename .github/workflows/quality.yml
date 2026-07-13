@@ -27,13 +27,16 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, dom, fileinfo, pcntl, posix, redis
           coverage: none
-          tools: composer:2.9.2
+          tools: composer:2.10.2
 
       - name: Siapkan Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '24.18.0'
           cache: npm
+
+      - name: Siapkan environment build non-production
+        run: cp .env.example .env
 
       - name: Validasi manifest dependency
         run: composer validate --no-check-publish
@@ -48,9 +51,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Siapkan konfigurasi pengujian
-        run: |
-          cp .env.example .env
-          php artisan key:generate
+        run: php artisan key:generate
 
       - name: Periksa backend
         run: composer quality

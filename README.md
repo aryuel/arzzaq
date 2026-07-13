@@ -38,7 +38,7 @@ Versi PHP dan Node dikunci melalui manifest serta lockfile. Image container dan 
 ## Persyaratan Fase 1
 
 - PHP 8.4 beserta ekstensi standar Laravel;
-- Composer 2.9;
+- Composer 2.10.2 atau patch lebih baru yang tidak terdampak advisory keamanan;
 - Node.js 24.18.0;
 - npm 11.
 
