@@ -11,6 +11,8 @@ final class BootstrapApplicationTest extends TestCase
     #[Test]
     public function halaman_skeleton_dapat_dimuat_tanpa_mengekspos_data_domain(): void
     {
+        $this->withoutVite();
+
         $this->get('/')
             ->assertOk()
             ->assertSee('<div id="app"></div>', false)
