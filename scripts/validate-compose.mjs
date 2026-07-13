@@ -69,7 +69,7 @@ for (const nama of layananWajib) {
 
     const capabilities = layanan.cap_add ?? [];
     const capabilityDiizinkan = /^(0|root)(:|$)/.test(String(layanan.user ?? ''))
-        ? ['DAC_READ_SEARCH']
+        ? ['DAC_READ_SEARCH', 'SETGID', 'SETUID']
         : [];
 
     if (

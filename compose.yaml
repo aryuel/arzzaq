@@ -62,6 +62,8 @@ x-app-common: &app-common
     - ALL
   cap_add:
     - DAC_READ_SEARCH
+    - SETGID
+    - SETUID
   secrets:
     - app_key
     - db_password
@@ -234,6 +236,8 @@ services:
       - ALL
     cap_add:
       - DAC_READ_SEARCH
+      - SETGID
+      - SETUID
     environment:
       POSTGRES_DB: ${DB_DATABASE:-arzzaq}
       POSTGRES_USER: ${DB_USERNAME:-arzzaq_app}
@@ -278,6 +282,8 @@ services:
       - ALL
     cap_add:
       - DAC_READ_SEARCH
+      - SETGID
+      - SETUID
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_password
     secrets:
@@ -285,7 +291,7 @@ services:
     volumes:
       - redis_data:/data
     tmpfs:
-      - /tmp:uid=999,gid=999,mode=1770
+      - /tmp:uid=1000,gid=1000,mode=1770
     networks:
       data: {}
     healthcheck:
@@ -299,7 +305,7 @@ services:
     pids_limit: 128
     logging: *logging
     labels:
-      io.arzzaq.runtime-user: "999:999"
+      io.arzzaq.runtime-user: "1000:1000"
 
 networks:
   edge:

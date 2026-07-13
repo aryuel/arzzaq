@@ -24,7 +24,7 @@ Hanya Caddy memiliki published port. PostgreSQL, Redis, Reverb, PHP-FPM, Horizon
 
 Semua service memakai root filesystem read-only, `no-new-privileges`, `cap_drop: ALL`, PID limit, memory limit, CPU limit, log rotation, healthcheck, dan graceful stop period. Directory runtime yang harus ditulis disediakan melalui named volume atau `tmpfs`. Docker socket tidak pernah dipasang ke container.
 
-Entrypoint aplikasi, PostgreSQL, dan Redis dimulai sebagai UID 0 dengan seluruh Linux capability dilepas, lalu hanya `DAC_READ_SEARCH` ditambahkan untuk membaca bind-mounted secret mode `0600` yang dimiliki UID host. Entrypoint segera mengganti proses melalui `su-exec` ke UID workload non-root; capability tersebut ikut hilang sebelum PHP-FPM, PostgreSQL, Redis, Reverb, Horizon, atau scheduler dijalankan. Validator Compose menolak capability tambahan lain. Pola ini menjaga secret host tidak world-readable dan tidak menaruh nilainya pada image, Compose environment, maupun command line workload.
+Entrypoint aplikasi, PostgreSQL, dan Redis dimulai sebagai UID 0 dengan seluruh Linux capability dilepas, lalu hanya `DAC_READ_SEARCH`, `SETGID`, dan `SETUID` ditambahkan untuk membaca bind-mounted secret mode `0600` milik UID host dan menurunkan privilege. Entrypoint segera mengganti proses melalui `su-exec` ke UID workload non-root; ketiga capability tersebut ikut hilang sebelum PHP-FPM, PostgreSQL, Redis, Reverb, Horizon, atau scheduler dijalankan. Validator Compose menolak capability tambahan lain. Pola ini menjaga secret host tidak world-readable dan tidak menaruh nilainya pada image, Compose environment, maupun command line workload.
 
 Image resmi dipin dengan tag exact dan digest:
 
