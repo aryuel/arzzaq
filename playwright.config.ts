@@ -14,6 +14,17 @@ export default defineConfig({
         command: 'php artisan serve --host=127.0.0.1 --port=8000',
         url: 'http://127.0.0.1:8000/up',
         reuseExistingServer: !process.env.CI,
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env: {
+            ...process.env,
+            APP_ENV: 'testing',
+            CACHE_STORE: 'array',
+            DB_CONNECTION: 'sqlite',
+            DB_DATABASE: ':memory:',
+            QUEUE_CONNECTION: 'sync',
+            SESSION_DRIVER: 'array',
+        },
     },
     projects: [
         {
