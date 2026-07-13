@@ -22,6 +22,8 @@ Thumbs.db
 /public/storage
 /playwright-report/
 /test-results/
+/coverage/
+/openapi/dist/
 
 # Artefak runtime dan pengujian
 *.log
@@ -34,3 +36,7 @@ Thumbs.db
 # Credential tooling lokal
 /auth.json
 /.phpactor.json
+
+# Secret lokal untuk Docker Compose; hanya template yang boleh dilacak.
+/docker/secrets/*.txt
+!/docker/secrets/*.example

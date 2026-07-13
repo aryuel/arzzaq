@@ -19,6 +19,8 @@
         "openapi:lint": "redocly lint openapi/openapi.yaml",
         "openapi:bundle": "redocly bundle openapi/openapi.yaml --output openapi/dist/openapi.yaml",
         "openapi:types": "openapi-typescript openapi/openapi.yaml --output resources/js/api/schema.d.ts",
+        "infra:validate": "node scripts/validate-compose.mjs",
+        "infra:health": "node scripts/healthcheck.mjs --wait 180",
         "quality": "npm run lint && npm run typecheck && npm run test && npm run openapi:lint && npm run build"
     },
     "dependencies": {

@@ -1,0 +1,28 @@
+services:
+  caddy:
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN wajib diisi untuk production}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL wajib diisi untuk production}
+    volumes:
+      - ./docker/caddy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  app:
+    environment: &production-environment
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://${APP_DOMAIN:?APP_DOMAIN wajib diisi untuk production}
+      LOG_LEVEL: warning
+      REVERB_HOST: ${APP_DOMAIN}
+      REVERB_ALLOWED_ORIGINS: https://${APP_DOMAIN}
+      CORS_ALLOWED_ORIGINS: https://${APP_DOMAIN}
+
+  reverb:
+    environment: *production-environment
+
+  horizon:
+    environment: *production-environment
+
+  scheduler:
+    environment: *production-environment

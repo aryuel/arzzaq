@@ -6,7 +6,7 @@ Sistem dirancang aktif sekitar Ramadan dan Idulfitri, lalu infrastrukturnya dino
 
 ## Status Pengembangan
 
-Fase 0 berupa penguncian arsitektur dan keamanan telah selesai. Repository saat ini berada pada Fase 1: skeleton Laravel dan Vue TypeScript, kontrak API awal, serta quality gate otomatis. Migration domain, container, autentikasi, dan UI produk belum diimplementasikan pada fase ini.
+Fase 0 dan Fase 1 telah selesai. Repository saat ini berada pada Fase 2: infrastruktur Docker Compose yang menyerupai production, container hardening, isolasi jaringan, healthcheck, dan quality gate image. Migration domain, autentikasi, dan UI produk belum diimplementasikan pada fase ini.
 
 ## Peran Pengguna
 
@@ -33,9 +33,9 @@ Super Admin mengelola akun panitia, periode dan konfigurasi zakat, koreksi data 
 - PHPUnit, Larastan, Laravel Pint, ESLint, Vitest, dan Playwright;
 - OpenAPI 3.1.2 sebagai kontrak integrasi frontend-backend.
 
-Versi PHP dan Node dikunci melalui manifest serta lockfile. Image container dan digest baru ditambahkan pada Fase 2.
+Versi PHP dan Node dikunci melalui manifest serta lockfile. Seluruh base image container resmi dipin menggunakan tag exact dan digest SHA-256.
 
-## Persyaratan Fase 1
+## Persyaratan Pengembangan Native
 
 - PHP 8.4 beserta ekstensi standar Laravel;
 - Composer 2.10.2 atau patch lebih baru yang tidak terdampak advisory keamanan;
@@ -50,7 +50,51 @@ composer install --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
 
 Pengecualian ini hanya untuk workstation Windows. CI dan runtime Linux tetap menjalankan pemeriksaan requirement tanpa pengecualian.
 
-Docker belum menjadi prasyarat Fase 1. Lingkungan container lengkap disediakan pada Fase 2.
+Mode native tetap berguna untuk quality gate cepat. Lingkungan terintegrasi menggunakan Docker Engine 29.6.x dan Docker Compose 5.1.x.
+
+## Bootstrap Infrastruktur Lokal
+
+Bootstrap menghasilkan secret acak pada `docker/secrets/*.txt`, membangun image, menyalakan seluruh layanan, dan menunggu semua healthcheck lulus. File secret tersebut diabaikan Git.
+
+PowerShell:
+
+```powershell
+.\scripts\bootstrap-local.ps1
+```
+
+Linux atau WSL:
+
+```bash
+sh scripts/bootstrap-local.sh
+```
+
+Aplikasi tersedia melalui `https://localhost`. Caddy menggunakan CA internal khusus development, sehingga browser dapat menampilkan peringatan sampai root certificate lokal dipercaya. Jangan memakai sertifikat development ini pada production.
+
+Layanan yang dijalankan:
+
+- Caddy sebagai satu-satunya service yang membuka port host `80/443`;
+- PHP-FPM Laravel tanpa port publik;
+- Reverb internal yang hanya dicapai melalui proxy WSS Caddy;
+- Horizon dan scheduler dalam container terpisah;
+- PostgreSQL dan Redis pada network internal tanpa published port.
+
+Periksa status seluruh layanan dengan:
+
+```powershell
+npm.cmd run infra:health
+```
+
+Reset lokal sengaja membutuhkan konfirmasi eksplisit karena menghapus volume PostgreSQL dan Redis:
+
+```powershell
+.\scripts\reset-local.ps1 -YaHapusData
+```
+
+```bash
+sh scripts/reset-local.sh --ya-hapus-data
+```
+
+Secret lokal tidak ikut dihapus agar reset container tidak merotasi credential secara tidak sengaja. Prosedur production, rotasi secret, network boundary, dan troubleshooting berada di [`docs/INFRASTRUKTUR.md`](docs/INFRASTRUKTUR.md).
 
 ## Bootstrap Repository
 
@@ -121,6 +165,8 @@ Perintah penting lainnya:
 - `npm run lint` menjalankan ESLint tanpa toleransi warning;
 - `npm run test` menjalankan unit test frontend;
 - `npm run build` membuktikan build production dapat direproduksi.
+- `npm run infra:validate` memvalidasi isolasi, resource limit, healthcheck, dan hardening Compose;
+- `npm run infra:health` memastikan seluruh container berjalan serta sehat.
 
 ## Kontrak API
 
@@ -147,6 +193,8 @@ GitHub Actions menjalankan:
 - audit Composer dan npm;
 - pemindaian vulnerability, secret, serta misconfiguration dengan Trivy;
 - pemindaian image otomatis setelah Dockerfile tersedia pada Fase 2.
+- bootstrap bersih dan simulasi restart PostgreSQL, Redis, serta Horizon;
+- pemindaian image aplikasi, Caddy, PostgreSQL, dan Redis.
 
 Seluruh action eksternal dipin ke commit SHA. Dependabot hanya mengusulkan pembaruan melalui pull request agar perubahan dependency tetap melewati review dan CI.
 
@@ -163,6 +211,10 @@ resources/views/     shell HTML minimum
 routes/              route web, API, dan console
 tests/               pengujian PHP dan browser
 .github/             CI dan kebijakan pembaruan dependency
+docker/              konfigurasi PHP-FPM, Caddy, dan template secret
+scripts/             bootstrap, health check, validasi, dan reset lokal
+compose.yaml         topologi development yang di-hardening
+compose.production.yaml override TLS dan environment production
 ```
 
 ## Prinsip Pengembangan

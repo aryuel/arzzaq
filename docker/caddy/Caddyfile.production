@@ -1,0 +1,58 @@
+{
+	admin off
+	http_port 8080
+	https_port 8443
+	email {$ACME_EMAIL}
+	servers {
+		protocols h1 h2 h3
+		max_header_size 32KB
+	}
+}
+
+{$APP_DOMAIN} {
+	root * /srv/app/public
+	encode zstd gzip
+
+	request_body {
+		max_size 10MB
+	}
+
+	@fonnte_callback path /api/v1/webhooks/fonnte/*
+	log_skip @fonnte_callback
+
+	@horizon path /horizon /horizon/*
+	respond @horizon 404
+
+	@reverb path /app/* /apps/*
+	reverse_proxy @reverb reverb:8080
+
+	@health path /healthz
+	rewrite @health /up
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self' wss://{$APP_DOMAIN}"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Permissions-Policy "camera=(self), geolocation=(), microphone=(), payment=(), usb=()"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+
+	php_fastcgi app:9000 {
+		capture_stderr
+	}
+	file_server
+
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "\\?.*$" "?[REDACTED]"
+			}
+		}
+	}
+}

@@ -1,0 +1,328 @@
+name: arzzaq
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+x-app-environment: &app-environment
+  APP_NAME: Arzzaq
+  APP_ENV: ${APP_ENV:-local}
+  APP_DEBUG: "false"
+  APP_URL: https://${APP_DOMAIN:-localhost}
+  APP_KEY_FILE: /run/secrets/app_key
+  APP_LOCALE: id
+  APP_FALLBACK_LOCALE: id
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_DATABASE: ${DB_DATABASE:-arzzaq}
+  DB_USERNAME: ${DB_USERNAME:-arzzaq_app}
+  DB_PASSWORD_FILE: /run/secrets/db_password
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+  SESSION_ENCRYPT: "true"
+  SESSION_SECURE_COOKIE: "true"
+  SESSION_HTTP_ONLY: "true"
+  SESSION_SAME_SITE: lax
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  REVERB_APP_ID: ${REVERB_APP_ID:-arzzaq-local}
+  REVERB_APP_KEY: ${REVERB_APP_KEY:-arzzaq-local-key}
+  REVERB_APP_SECRET_FILE: /run/secrets/reverb_app_secret
+  REVERB_HOST: ${APP_DOMAIN:-localhost}
+  REVERB_PORT: "443"
+  REVERB_SCHEME: https
+  REVERB_SERVER_HOST: 0.0.0.0
+  REVERB_SERVER_PORT: "8080"
+  REVERB_SCALING_ENABLED: "true"
+  REVERB_ALLOWED_ORIGINS: https://${APP_DOMAIN:-localhost}
+  REVERB_APP_RATE_LIMITING_ENABLED: "true"
+  REVERB_APP_RATE_LIMIT_MAX_ATTEMPTS: "120"
+  REVERB_APP_RATE_LIMIT_DECAY_SECONDS: "60"
+  REVERB_APP_RATE_LIMIT_TERMINATE: "true"
+  CORS_ALLOWED_ORIGINS: https://${APP_DOMAIN:-localhost}
+
+x-app-common: &app-common
+  image: arzzaq-app:local
+  user: "10001:10001"
+  init: true
+  read_only: true
+  restart: unless-stopped
+  stop_grace_period: 30s
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  secrets:
+    - app_key
+    - db_password
+    - redis_password
+    - reverb_app_secret
+  volumes:
+    - app_storage:/srv/app/storage
+    - bootstrap_cache:/srv/app/bootstrap/cache
+  tmpfs:
+    - /tmp:uid=10001,gid=10001,mode=1770
+  environment: *app-environment
+  logging: *logging
+
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
+    image: arzzaq-caddy:local
+    user: "1000:1000"
+    init: true
+    read_only: true
+    restart: unless-stopped
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - target: 8080
+        published: "80"
+        protocol: tcp
+        mode: host
+      - target: 8443
+        published: "443"
+        protocol: tcp
+        mode: host
+      - target: 8443
+        published: "443"
+        protocol: udp
+        mode: host
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.invalid}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    tmpfs:
+      - /tmp:uid=1000,gid=1000,mode=1770
+    networks:
+      edge:
+        ipv4_address: 172.28.0.2
+    depends_on:
+      app:
+        condition: service_healthy
+      reverb:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, --no-check-certificate, --quiet, --spider, https://localhost:8443/healthz]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    cpus: "0.25"
+    mem_limit: 128m
+    pids_limit: 64
+    logging: *logging
+
+  app:
+    <<: *app-common
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    networks:
+      edge:
+        ipv4_address: 172.28.0.3
+      data: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    cpus: "2.0"
+    mem_limit: 1g
+    pids_limit: 256
+
+  reverb:
+    <<: *app-common
+    command: [php, artisan, reverb:start, --host=0.0.0.0, --port=8080]
+    networks:
+      edge:
+        ipv4_address: 172.28.0.4
+      data: {}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, php, -r, "$$s=@fsockopen('127.0.0.1',8080); if(!$$s){exit(1);} fclose($$s);"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    cpus: "0.50"
+    mem_limit: 512m
+    pids_limit: 128
+
+  horizon:
+    <<: *app-common
+    command: [php, artisan, horizon]
+    networks:
+      data: {}
+      egress: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, php, artisan, horizon:status]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cpus: "1.0"
+    mem_limit: 1536m
+    pids_limit: 256
+
+  scheduler:
+    <<: *app-common
+    command: [php, artisan, schedule:work, --no-interaction]
+    networks:
+      data: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, sh, -c, "kill -0 1"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+
+  postgres:
+    image: postgres:17.10-alpine3.22@sha256:b02d9b5bcf608c2719da32cdabee274a33841202487fd5dc9b065b63f886753f
+    user: "70:70"
+    init: true
+    read_only: true
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-arzzaq}
+      POSTGRES_USER: ${DB_USERNAME:-arzzaq_app}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    secrets:
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp:uid=70,gid=70,mode=1770
+      - /var/run/postgresql:uid=70,gid=70,mode=0770
+    networks:
+      data: {}
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    shm_size: 256m
+    cpus: "1.0"
+    mem_limit: 2g
+    pids_limit: 256
+    logging: *logging
+
+  redis:
+    image: redis:8.2.7-alpine3.22@sha256:223b183cbc49f5ff48728e1fc52ccf101f05072decad2bd9867281a3c9bf75fd
+    user: "999:999"
+    init: true
+    read_only: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command:
+      - sh
+      - -ec
+      - >-
+        exec redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 512mb
+        --maxmemory-policy noeviction
+        --requirepass "$$(cat /run/secrets/redis_password)"
+    secrets:
+      - redis_password
+    volumes:
+      - redis_data:/data
+    tmpfs:
+      - /tmp:uid=999,gid=999,mode=1770
+    networks:
+      data: {}
+    healthcheck:
+      test: [CMD-SHELL, "redis-cli --no-auth-warning -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    cpus: "0.50"
+    mem_limit: 768m
+    pids_limit: 128
+    logging: *logging
+
+networks:
+  edge:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+  data:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24
+  egress:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  app_storage: {}
+  bootstrap_cache: {}
+  caddy_config: {}
+  caddy_data: {}
+  postgres_data: {}
+  redis_data: {}
+
+secrets:
+  app_key:
+    file: ./docker/secrets/app_key.txt
+  db_password:
+    file: ./docker/secrets/db_password.txt
+  redis_password:
+    file: ./docker/secrets/redis_password.txt
+  reverb_app_secret:
+    file: ./docker/secrets/reverb_app_secret.txt
