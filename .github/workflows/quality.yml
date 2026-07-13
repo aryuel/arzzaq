@@ -68,7 +68,9 @@ jobs:
           git diff --exit-code -- resources/js/api/schema.d.ts
 
       - name: Pasang Chromium untuk smoke test
-        run: npx playwright install --with-deps chromium
+        # Runner ubuntu-24.04 sudah menyediakan library sistem browser.
+        # Hindari --with-deps karena APT mirror eksternal dapat membuat CI timeout.
+        run: npx playwright install chromium
 
       - name: Jalankan smoke test browser
         run: npm run test:e2e
