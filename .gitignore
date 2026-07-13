@@ -14,3 +14,23 @@
 .DS_Store
 Thumbs.db
 
+# Dependency dan artefak build
+/vendor/
+/node_modules/
+/public/build/
+/public/hot
+/public/storage
+/playwright-report/
+/test-results/
+
+# Artefak runtime dan pengujian
+*.log
+/.phpunit.cache/
+/.phpunit.result.cache
+/database/*.sqlite
+/storage/*.key
+/storage/pail/
+
+# Credential tooling lokal
+/auth.json
+/.phpactor.json

@@ -1,0 +1,1676 @@
+openapi: 3.1.2
+info:
+  title: API Arzzaq
+  version: 1.0.0
+  description: >-
+    Kontrak awal API aplikasi manajemen zakat Arzzaq. Semua nominal dan berat
+    dikirim sebagai decimal string. Autentikasi SPA menggunakan cookie session
+    Sanctum dan perlindungan CSRF.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: /api/v1
+    description: API aplikasi pada origin yang sama
+tags:
+  - name: Auth Keluarga
+    description: Registrasi, OTP, PIN, dan session keluarga Muzakki.
+  - name: Auth Internal
+    description: Password, TOTP, recovery, dan session Amil atau Super Admin.
+  - name: Konfigurasi
+    description: Konfigurasi publik terbatas untuk periode aktif.
+  - name: Transaksi
+    description: Transaksi yang dimiliki keluarga yang sedang login.
+  - name: Amil
+    description: Pemindaian dan pengesahan penerimaan fisik oleh Amil.
+  - name: Admin
+    description: Operasi terbatas Super Admin dengan kontrol tambahan.
+paths:
+  /auth/keluarga/check-nomor:
+    post:
+      tags: [Auth Keluarga]
+      operationId: checkNomorKeluarga
+      summary: Memulai alur autentikasi keluarga
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/NomorHp'
+      responses:
+        '200':
+          $ref: '#/components/responses/Flow'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/keluarga/register:
+    post:
+      tags: [Auth Keluarga]
+      operationId: registerKeluarga
+      summary: Mendaftarkan keluarga dan mengirim OTP
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/RegistrasiKeluarga'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/keluarga/verify-otp:
+    post:
+      tags: [Auth Keluarga]
+      operationId: verifyOtpKeluarga
+      summary: Memverifikasi OTP keluarga
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/VerifikasiOtp'
+      responses:
+        '200':
+          $ref: '#/components/responses/VerificationGrant'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/keluarga/set-pin:
+    post:
+      tags: [Auth Keluarga]
+      operationId: setPinKeluarga
+      summary: Menetapkan atau mereset PIN dengan verification grant
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/SetPin'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/keluarga/login:
+    post:
+      tags: [Auth Keluarga]
+      operationId: loginKeluarga
+      summary: Membuat session keluarga
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/LoginKeluarga'
+      responses:
+        '200':
+          $ref: '#/components/responses/Session'
+        '401':
+          $ref: '#/components/responses/LoginProblem'
+        '423':
+          $ref: '#/components/responses/LockedProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/keluarga/forgot-pin:
+    post:
+      tags: [Auth Keluarga]
+      operationId: forgotPinKeluarga
+      summary: Memulai reset PIN dengan respons generik
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/NomorHp'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/internal/login:
+    post:
+      tags: [Auth Internal]
+      operationId: loginInternal
+      summary: Memulai session pengguna internal
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/LoginInternal'
+      responses:
+        '200':
+          $ref: '#/components/responses/InternalLogin'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '423':
+          $ref: '#/components/responses/LockedProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/internal/mfa/totp/verify:
+    post:
+      tags: [Auth Internal]
+      operationId: verifyTotpInternal
+      summary: Menyelesaikan login internal dengan TOTP
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/MfaCode'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/internal/mfa/recovery:
+    post:
+      tags: [Auth Internal]
+      operationId: recoverMfaInternal
+      summary: Menyelesaikan login dengan recovery code single-use
+      security: []
+      requestBody:
+        $ref: '#/components/requestBodies/MfaRecovery'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /auth/internal/mfa/totp/setup:
+    post:
+      tags: [Auth Internal]
+      operationId: setupTotpInternal
+      summary: Membuat provisioning TOTP yang belum aktif
+      x-arzzaq-policy: internal-session + recent-auth + super-admin-owner
+      responses:
+        '200':
+          $ref: '#/components/responses/TotpProvisioning'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /auth/internal/mfa/totp/confirm:
+    post:
+      tags: [Auth Internal]
+      operationId: confirmTotpInternal
+      summary: Mengaktifkan TOTP setelah kode pertama valid
+      x-arzzaq-policy: internal-session + recent-auth + super-admin-owner
+      requestBody:
+        $ref: '#/components/requestBodies/TotpConfirmation'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /auth/internal/mfa/recovery-codes/regenerate:
+    post:
+      tags: [Auth Internal]
+      operationId: regenerateRecoveryCodesInternal
+      summary: Mengganti seluruh recovery code
+      x-arzzaq-policy: internal-session + recent-auth + super-admin-owner
+      responses:
+        '200':
+          $ref: '#/components/responses/RecoveryCodes'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /auth/internal/change-password:
+    post:
+      tags: [Auth Internal]
+      operationId: changePasswordInternal
+      summary: Mengganti password pengguna internal
+      requestBody:
+        $ref: '#/components/requestBodies/UbahPassword'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /auth/logout:
+    post:
+      tags: [Auth Keluarga, Auth Internal]
+      operationId: logout
+      summary: Mengakhiri session aktif
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+  /nisab-config/current:
+    get:
+      tags: [Konfigurasi]
+      operationId: getCurrentNisabConfig
+      summary: Membaca konfigurasi nisab periode aktif
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/NisabConfig'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /transaksi:
+    get:
+      tags: [Transaksi]
+      operationId: listTransaksi
+      summary: Membaca transaksi milik keluarga yang login
+      x-arzzaq-policy: keluarga-session + own-resource
+      parameters:
+        - $ref: '#/components/parameters/Periode'
+        - $ref: '#/components/parameters/StatusTransaksi'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransactionCollection'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    post:
+      tags: [Transaksi]
+      operationId: createTransaksi
+      summary: Membuat transaksi pada periode aktif
+      x-arzzaq-policy: keluarga-session + active-period + server-recalculation
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/Transaksi'
+      responses:
+        '201':
+          $ref: '#/components/responses/Transaction'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /transaksi/{id}/batalkan:
+    post:
+      tags: [Transaksi]
+      operationId: cancelTransaksi
+      summary: Membatalkan transaksi pending milik sendiri
+      x-arzzaq-policy: keluarga-session + own-resource + pending-only
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /transaksi/{id}/kwitansi-url:
+    get:
+      tags: [Transaksi]
+      operationId: getKwitansiUrl
+      summary: Membuat URL sementara untuk kwitansi current milik sendiri
+      x-arzzaq-policy: keluarga-session + own-resource + validated-only
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ReceiptUrl'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /amil/scan:
+    post:
+      tags: [Amil]
+      operationId: scanTransaksi
+      summary: Memeriksa opaque QR token transaksi
+      x-arzzaq-policy: amil-session + valid-qr-token
+      requestBody:
+        $ref: '#/components/requestBodies/ScanQr'
+      responses:
+        '200':
+          $ref: '#/components/responses/ScanResult'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '429':
+          $ref: '#/components/responses/RateLimitProblem'
+  /amil/transaksi/{id}/sahkan:
+    post:
+      tags: [Amil]
+      operationId: validateTransaksi
+      summary: Mengesahkan penerimaan fisik zakat
+      x-arzzaq-policy: amil-session + qr-object-grant + row-lock
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/PengesahanTransaksi'
+      responses:
+        '200':
+          $ref: '#/components/responses/Transaction'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /amil/input-manual:
+    post:
+      tags: [Amil]
+      operationId: createManualTransaksi
+      summary: Mencatat dan langsung mengesahkan transaksi manual
+      x-arzzaq-policy: amil-session + active-period + server-recalculation
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/TransaksiManual'
+      responses:
+        '201':
+          $ref: '#/components/responses/Transaction'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/panitia:
+    post:
+      tags: [Admin]
+      operationId: createPanitia
+      summary: Membuat akun Amil
+      x-arzzaq-policy: super-admin-session + recent-auth
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/Panitia'
+      responses:
+        '201':
+          $ref: '#/components/responses/TemporaryCredential'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/panitia/{id}/nonaktifkan:
+    patch:
+      tags: [Admin]
+      operationId: deactivatePanitia
+      summary: Menonaktifkan akun Amil dan mencabut session
+      x-arzzaq-policy: super-admin-session + recent-auth
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /admin/panitia/{id}/reset-password:
+    patch:
+      tags: [Admin]
+      operationId: resetPasswordPanitia
+      summary: Mengganti password sementara Amil
+      x-arzzaq-policy: super-admin-session + recent-auth
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          $ref: '#/components/responses/TemporaryCredential'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /admin/nisab-config:
+    put:
+      tags: [Admin]
+      operationId: updateNisabConfig
+      summary: Mengubah konfigurasi nisab periode yang diizinkan
+      x-arzzaq-policy: super-admin-session + recent-auth + period-state
+      requestBody:
+        $ref: '#/components/requestBodies/NisabConfig'
+      responses:
+        '200':
+          $ref: '#/components/responses/NisabConfig'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/distribusi:
+    post:
+      tags: [Admin]
+      operationId: createDistribusi
+      summary: Mencatat distribusi agregat per asnaf
+      x-arzzaq-policy: super-admin-session + recent-auth + active-period
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/Distribusi'
+      responses:
+        '201':
+          $ref: '#/components/responses/Distribution'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/transaksi/{id}/koreksi:
+    post:
+      tags: [Admin]
+      operationId: correctTransaksi
+      summary: Membuat koreksi append-only transaksi final
+      x-arzzaq-policy: super-admin-session + totp-session + recent-auth + row-lock
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/KoreksiTransaksi'
+      responses:
+        '201':
+          $ref: '#/components/responses/Adjustment'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/transaksi/{id}/reversal:
+    post:
+      tags: [Admin]
+      operationId: reverseTransaksi
+      summary: Membuat reversal terminal transaksi final
+      x-arzzaq-policy: super-admin-session + totp-session + recent-auth + row-lock
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/Alasan'
+      responses:
+        '201':
+          $ref: '#/components/responses/Adjustment'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/distribusi/{id}/koreksi:
+    post:
+      tags: [Admin]
+      operationId: correctDistribusi
+      summary: Membuat koreksi append-only distribusi
+      x-arzzaq-policy: super-admin-session + totp-session + recent-auth + row-lock
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/KoreksiDistribusi'
+      responses:
+        '201':
+          $ref: '#/components/responses/Adjustment'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/distribusi/{id}/reversal:
+    post:
+      tags: [Admin]
+      operationId: reverseDistribusi
+      summary: Membuat reversal terminal distribusi
+      x-arzzaq-policy: super-admin-session + totp-session + recent-auth + row-lock
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/Alasan'
+      responses:
+        '201':
+          $ref: '#/components/responses/Adjustment'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/periode:
+    post:
+      tags: [Admin]
+      operationId: createPeriode
+      summary: Membuat periode zakat draft
+      x-arzzaq-policy: super-admin-session + recent-auth
+      requestBody:
+        $ref: '#/components/requestBodies/Periode'
+      responses:
+        '201':
+          $ref: '#/components/responses/Period'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /admin/periode/{id}/aktifkan:
+    post:
+      tags: [Admin]
+      operationId: activatePeriode
+      summary: Mengaktifkan satu periode draft
+      x-arzzaq-policy: super-admin-session + recent-auth + draft-period
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          $ref: '#/components/responses/Period'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+  /admin/periode/{id}/tutup:
+    post:
+      tags: [Admin]
+      operationId: closePeriode
+      summary: Menutup periode aktif secara terminal
+      x-arzzaq-policy: super-admin-session + recent-auth + active-period
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          $ref: '#/components/responses/Period'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: arzzaq_session
+      description: Cookie HttpOnly session Sanctum; request mutasi juga wajib lolos CSRF.
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 22
+        maxLength: 255
+      description: Nilai acak dengan entropi minimal 128 bit.
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+        maxLength: 512
+    PerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Periode:
+      name: periode
+      in: query
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+    StatusTransaksi:
+      name: status
+      in: query
+      schema:
+        $ref: '#/components/schemas/TransactionStatus'
+  requestBodies:
+    NomorHp:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [nomor_hp]
+            properties:
+              nomor_hp:
+                $ref: '#/components/schemas/PhoneNumber'
+    RegistrasiKeluarga:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FamilyRegistration'
+    VerifikasiOtp:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [flow_token, otp]
+            properties:
+              flow_token:
+                $ref: '#/components/schemas/OpaqueToken'
+              otp:
+                type: string
+                pattern: '^[0-9]{6}$'
+    SetPin:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [verification_grant, pin, pin_confirmation]
+            properties:
+              verification_grant:
+                $ref: '#/components/schemas/OpaqueToken'
+              pin:
+                $ref: '#/components/schemas/Pin'
+              pin_confirmation:
+                $ref: '#/components/schemas/Pin'
+    LoginKeluarga:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [nomor_hp, pin]
+            properties:
+              nomor_hp:
+                $ref: '#/components/schemas/PhoneNumber'
+              pin:
+                $ref: '#/components/schemas/Pin'
+    LoginInternal:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [username, password]
+            properties:
+              username:
+                type: string
+                minLength: 3
+                maxLength: 50
+              password:
+                type: string
+                minLength: 1
+                maxLength: 255
+    MfaCode:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [mfa_challenge, code]
+            properties:
+              mfa_challenge:
+                $ref: '#/components/schemas/OpaqueToken'
+              code:
+                type: string
+                pattern: '^[0-9]{6}$'
+    MfaRecovery:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [mfa_challenge, recovery_code]
+            properties:
+              mfa_challenge:
+                $ref: '#/components/schemas/OpaqueToken'
+              recovery_code:
+                type: string
+                minLength: 8
+                maxLength: 100
+    TotpConfirmation:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [code]
+            properties:
+              code:
+                type: string
+                pattern: '^[0-9]{6}$'
+    UbahPassword:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [password_lama, password_baru, password_baru_confirmation]
+            properties:
+              password_lama:
+                type: string
+                minLength: 1
+                maxLength: 255
+              password_baru:
+                type: string
+                minLength: 12
+                maxLength: 255
+              password_baru_confirmation:
+                type: string
+                minLength: 12
+                maxLength: 255
+    Transaksi:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransactionInput'
+    PengesahanTransaksi:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              nominal_uang_aktual:
+                $ref: '#/components/schemas/Money'
+              jumlah_beras_kg_aktual:
+                $ref: '#/components/schemas/Weight'
+              catatan_amil:
+                type: string
+                maxLength: 2000
+    ScanQr:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [qr_raw_token]
+            properties:
+              qr_raw_token:
+                $ref: '#/components/schemas/OpaqueToken'
+    TransaksiManual:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [nomor_hp, transaksi]
+            properties:
+              nomor_hp:
+                $ref: '#/components/schemas/PhoneNumber'
+              keluarga_baru:
+                $ref: '#/components/schemas/FamilyProfileInput'
+              transaksi:
+                $ref: '#/components/schemas/TransactionInput'
+    Panitia:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [nama]
+            properties:
+              nama:
+                type: string
+                minLength: 1
+                maxLength: 100
+              username:
+                type: string
+                minLength: 3
+                maxLength: 50
+    NisabConfig:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+              harga_emas_per_gram:
+                $ref: '#/components/schemas/Money'
+              harga_beras_per_kg:
+                $ref: '#/components/schemas/Money'
+              zakat_fitrah_kg_per_jiwa:
+                $ref: '#/components/schemas/Weight'
+    Distribusi:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [kategori_asnaf, jenis, jumlah]
+            properties:
+              kategori_asnaf:
+                $ref: '#/components/schemas/AsnafCategory'
+              jenis:
+                $ref: '#/components/schemas/DistributionType'
+              jumlah:
+                $ref: '#/components/schemas/Decimal'
+              keterangan:
+                type: string
+                maxLength: 2000
+    KoreksiTransaksi:
+      required: true
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - type: object
+                additionalProperties: false
+                required: [nominal_uang_setelah, alasan]
+                properties:
+                  nominal_uang_setelah:
+                    $ref: '#/components/schemas/Money'
+                  alasan:
+                    $ref: '#/components/schemas/Reason'
+              - type: object
+                additionalProperties: false
+                required: [jumlah_beras_setelah, alasan]
+                properties:
+                  jumlah_beras_setelah:
+                    $ref: '#/components/schemas/Weight'
+                  alasan:
+                    $ref: '#/components/schemas/Reason'
+    KoreksiDistribusi:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [jumlah_setelah, alasan]
+            properties:
+              jumlah_setelah:
+                $ref: '#/components/schemas/Decimal'
+              alasan:
+                $ref: '#/components/schemas/Reason'
+    Alasan:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [alasan]
+            properties:
+              alasan:
+                $ref: '#/components/schemas/Reason'
+    Periode:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [tahun_hijriah, tahun_masehi, nama, mulai_at, selesai_at, invoice_prefix]
+            properties:
+              tahun_hijriah:
+                type: integer
+                minimum: 1400
+                maximum: 1600
+              tahun_masehi:
+                type: integer
+                minimum: 2000
+                maximum: 2200
+              nama:
+                type: string
+                minLength: 1
+                maxLength: 50
+              mulai_at:
+                $ref: '#/components/schemas/Timestamp'
+              selesai_at:
+                $ref: '#/components/schemas/Timestamp'
+              invoice_prefix:
+                type: string
+                pattern: '^ZKT-[0-9]{4}$'
+                maxLength: 15
+  responses:
+    NoContent:
+      description: Operasi berhasil tanpa body.
+    Accepted:
+      description: Permintaan diterima dengan respons yang tidak mengungkap keberadaan akun.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AcceptedEnvelope'
+    Flow:
+      description: Tahap alur berikutnya tanpa mengungkap status akun secara langsung.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FlowEnvelope'
+    VerificationGrant:
+      description: Grant single-use dengan TTL pendek.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/VerificationGrantEnvelope'
+    Session:
+      description: Session berhasil dibuat dan ID session telah dirotasi.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SessionEnvelope'
+    InternalLogin:
+      description: Status login internal atau challenge MFA.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalLoginEnvelope'
+    TotpProvisioning:
+      description: Provisioning TOTP sensitif yang tidak boleh disimpan pada log atau cache.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TotpProvisioningEnvelope'
+    RecoveryCodes:
+      description: Recovery code baru yang masing-masing hanya ditampilkan sekali.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RecoveryCodesEnvelope'
+    NisabConfig:
+      description: Konfigurasi nisab untuk periode aktif.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NisabConfigEnvelope'
+    Transaction:
+      description: Representasi transaksi sesuai policy pemanggil.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransactionEnvelope'
+    TransactionCollection:
+      description: Daftar transaksi milik keluarga dengan cursor pagination.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransactionCollectionEnvelope'
+    ReceiptUrl:
+      description: URL bertanda tangan yang berlaku singkat.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ReceiptUrlEnvelope'
+    ScanResult:
+      description: Data minimum yang dibutuhkan Amil untuk verifikasi fisik.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ScanResultEnvelope'
+    TemporaryCredential:
+      description: Credential sementara yang hanya ditampilkan satu kali.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TemporaryCredentialEnvelope'
+    Distribution:
+      description: Distribusi agregat yang berhasil dicatat.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DistributionEnvelope'
+    Adjustment:
+      description: Penyesuaian append-only yang berhasil dicatat.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdjustmentEnvelope'
+    Period:
+      description: Periode zakat.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PeriodEnvelope'
+    ValidationProblem:
+      description: Request valid secara sintaks tetapi field tidak valid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblem'
+    AuthenticationProblem:
+      description: Autentikasi tidak ada, tidak valid, atau kedaluwarsa.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    LoginProblem:
+      description: Credential salah dengan sisa percobaan yang aman ditampilkan.
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Problem'
+              - type: object
+                properties:
+                  sisa_percobaan:
+                    type: integer
+                    minimum: 0
+    AuthorizationProblem:
+      description: Actor tidak memiliki kewenangan.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFoundProblem:
+      description: Resource tidak ada atau keberadaannya sengaja disamarkan.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ConflictProblem:
+      description: Konflik state, idempotensi, atau aturan unik domain.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    LockedProblem:
+      description: Akun terkunci sementara.
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Problem'
+              - type: object
+                properties:
+                  locked_until:
+                    $ref: '#/components/schemas/Timestamp'
+    RateLimitProblem:
+      description: Terlalu banyak request.
+      headers:
+        Retry-After:
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    OpaqueToken:
+      type: string
+      minLength: 32
+      maxLength: 512
+    PhoneNumber:
+      type: string
+      pattern: '^\+[1-9][0-9]{7,14}$'
+      examples: ['+6281234567890']
+    Pin:
+      type: string
+      pattern: '^[0-9]{6}$'
+    Decimal:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,2})?$'
+    Money:
+      allOf:
+        - $ref: '#/components/schemas/Decimal'
+      examples: ['2500000.00']
+    Weight:
+      allOf:
+        - $ref: '#/components/schemas/Decimal'
+      examples: ['2.50']
+    Timestamp:
+      type: string
+      format: date-time
+      examples: ['2026-07-13T05:00:00Z']
+    Reason:
+      type: string
+      minLength: 3
+      maxLength: 500
+    TransactionStatus:
+      type: string
+      enum: [pending, sah, batal]
+    FamilyProfileInput:
+      type: object
+      additionalProperties: false
+      required: [nama_kepala_keluarga, alamat, rt, rw, desa_id, jumlah_jiwa]
+      properties:
+        nama_kepala_keluarga:
+          type: string
+          minLength: 1
+          maxLength: 100
+        alamat:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        rt:
+          type: string
+          pattern: '^[0-9]{2}$'
+        rw:
+          type: string
+          pattern: '^[0-9]{2}$'
+        desa_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+        jumlah_jiwa:
+          type: integer
+          minimum: 1
+          maximum: 100
+    FamilyRegistration:
+      type: object
+      additionalProperties: false
+      required: [nama_kepala_keluarga, nomor_hp, alamat, rt, rw, desa_id, jumlah_jiwa]
+      properties:
+        nama_kepala_keluarga:
+          type: string
+          minLength: 1
+          maxLength: 100
+        nomor_hp:
+          $ref: '#/components/schemas/PhoneNumber'
+        alamat:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        rt:
+          type: string
+          pattern: '^[0-9]{2}$'
+        rw:
+          type: string
+          pattern: '^[0-9]{2}$'
+        desa_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+        jumlah_jiwa:
+          type: integer
+          minimum: 1
+          maximum: 100
+    TransactionInput:
+      type: object
+      additionalProperties: false
+      required: [jenis, bentuk]
+      properties:
+        jenis:
+          type: string
+          enum: [fitrah, maal]
+        kategori_maal:
+          type: string
+          enum: [profesi, tabungan, perdagangan]
+        bentuk:
+          type: string
+          enum: [uang, beras]
+        jumlah_jiwa:
+          type: integer
+          minimum: 1
+          maximum: 100
+        nominal_uang:
+          $ref: '#/components/schemas/Money'
+        jumlah_beras_kg:
+          $ref: '#/components/schemas/Weight'
+        atas_nama:
+          type: string
+          minLength: 1
+          maxLength: 100
+    PeriodData:
+      type: object
+      additionalProperties: false
+      required: [id, tahun_hijriah, tahun_masehi, nama, status, mulai_at, selesai_at]
+      properties:
+        id:
+          type: string
+        tahun_hijriah:
+          type: integer
+        tahun_masehi:
+          type: integer
+        nama:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, closed]
+        mulai_at:
+          $ref: '#/components/schemas/Timestamp'
+        selesai_at:
+          $ref: '#/components/schemas/Timestamp'
+    TransactionData:
+      type: object
+      additionalProperties: false
+      required: [id, periode_id, jenis, bentuk, status, created_at]
+      properties:
+        id:
+          type: string
+        invoice_number:
+          type: [string, 'null']
+          maxLength: 30
+        periode_id:
+          type: string
+        jenis:
+          type: string
+          enum: [fitrah, maal]
+        kategori_maal:
+          type: [string, 'null']
+          enum: [profesi, tabungan, perdagangan, null]
+        bentuk:
+          type: string
+          enum: [uang, beras]
+        nominal_uang:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        jumlah_beras_kg:
+          oneOf:
+            - $ref: '#/components/schemas/Weight'
+            - type: 'null'
+        atas_nama:
+          type: [string, 'null']
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    AsnafCategory:
+      type: string
+      enum: [fakir, miskin, amil, muallaf, riqab, gharim, fisabilillah, ibnu_sabil]
+    DistributionType:
+      type: string
+      enum: [uang, beras]
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail, instance]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [field, code, detail]
+                properties:
+                  field:
+                    type: string
+                  code:
+                    type: string
+                  detail:
+                    type: string
+    AcceptedEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [status]
+          properties:
+            status:
+              type: string
+              const: accepted
+    FlowEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [flow_token, next_step]
+          properties:
+            flow_token:
+              $ref: '#/components/schemas/OpaqueToken'
+            next_step:
+              type: string
+              enum: [login, register, claim_account]
+    VerificationGrantEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [verification_grant, expires_in]
+          properties:
+            verification_grant:
+              $ref: '#/components/schemas/OpaqueToken'
+            expires_in:
+              type: integer
+              maximum: 600
+    SessionEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [authenticated]
+          properties:
+            authenticated:
+              type: boolean
+              const: true
+    InternalLoginEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [wajib_ganti_password, mfa_required]
+          properties:
+            wajib_ganti_password:
+              type: boolean
+            mfa_required:
+              type: boolean
+            mfa_challenge:
+              $ref: '#/components/schemas/OpaqueToken'
+    TotpProvisioningEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [secret, otpauth_uri]
+          properties:
+            secret:
+              type: string
+            otpauth_uri:
+              type: string
+              format: uri
+    RecoveryCodesEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [recovery_codes]
+          properties:
+            recovery_codes:
+              type: array
+              minItems: 1
+              uniqueItems: true
+              items:
+                type: string
+    NisabConfigEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [periode, harga_emas_per_gram, harga_beras_per_kg, zakat_fitrah_kg_per_jiwa]
+          properties:
+            periode:
+              $ref: '#/components/schemas/PeriodData'
+            harga_emas_per_gram:
+              $ref: '#/components/schemas/Money'
+            harga_beras_per_kg:
+              $ref: '#/components/schemas/Money'
+            zakat_fitrah_kg_per_jiwa:
+              $ref: '#/components/schemas/Weight'
+    TransactionEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/TransactionData'
+    TransactionCollectionEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data, meta, links]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionData'
+        meta:
+          type: object
+          additionalProperties: false
+          required: [next_cursor, per_page]
+          properties:
+            next_cursor:
+              type: [string, 'null']
+            per_page:
+              type: integer
+        links:
+          type: object
+          additionalProperties: false
+          required: [next]
+          properties:
+            next:
+              type: [string, 'null']
+              format: uri-reference
+    ReceiptUrlEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [signed_url, expires_in]
+          properties:
+            signed_url:
+              type: string
+              format: uri
+            expires_in:
+              type: integer
+              const: 300
+    ScanResultEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [transaksi]
+          properties:
+            transaksi:
+              $ref: '#/components/schemas/TransactionData'
+    TemporaryCredentialEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [username, password_sementara]
+          properties:
+            username:
+              type: string
+            password_sementara:
+              type: string
+    DistributionEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [id, periode_id, kategori_asnaf, jenis, jumlah, created_at]
+          properties:
+            id:
+              type: string
+            periode_id:
+              type: string
+            kategori_asnaf:
+              $ref: '#/components/schemas/AsnafCategory'
+            jenis:
+              $ref: '#/components/schemas/DistributionType'
+            jumlah:
+              $ref: '#/components/schemas/Decimal'
+            keterangan:
+              type: [string, 'null']
+            created_at:
+              $ref: '#/components/schemas/Timestamp'
+    AdjustmentEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [id, tipe, alasan, created_at]
+          properties:
+            id:
+              type: string
+            tipe:
+              type: string
+              enum: [koreksi, reversal]
+            alasan:
+              $ref: '#/components/schemas/Reason'
+            created_at:
+              $ref: '#/components/schemas/Timestamp'
+    PeriodEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/PeriodData'
+security:
+  - cookieAuth: []
