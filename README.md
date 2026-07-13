@@ -1,71 +1,190 @@
 # Arzzaq
 
-Arzzaq adalah aplikasi manajemen zakat musiman untuk membantu DKM Masjid Al-Jihad mengelola proses pengumpulan, verifikasi, pencatatan, dan pelaporan zakat secara tertib, aman, serta transparan.
+Arzzaq adalah aplikasi manajemen zakat musiman untuk membantu DKM Masjid Al-Jihad mengelola pengumpulan, verifikasi, pencatatan, distribusi, dan pelaporan zakat secara tertib, aman, serta transparan.
 
-## Tentang Proyek
+Sistem dirancang aktif sekitar Ramadan dan Idulfitri, lalu infrastrukturnya dinonaktifkan setelah proses tahunan selesai. Riwayat zakat tetap dipertahankan secara aman untuk periode berikutnya.
 
-Arzzaq dirancang untuk melayani jemaah, panitia zakat, dan pengurus DKM dalam satu sistem dengan pembagian kewenangan yang jelas. Sistem beroperasi pada periode sekitar Ramadan dan Idulfitri, kemudian infrastrukturnya dinonaktifkan setelah seluruh proses tahunan selesai. Riwayat zakat tetap dipertahankan secara aman untuk periode berikutnya.
+## Status Pengembangan
 
-Fokus utama proyek ini meliputi:
-
-- kemudahan penggunaan melalui antarmuka yang responsif dan ramah perangkat seluler;
-- perlindungan data pribadi jemaah melalui prinsip minimalisasi data;
-- integritas pencatatan penerimaan dan penyaluran zakat;
-- pemisahan kewenangan antara Muzakki, Amil, dan Super Admin;
-- verifikasi penyerahan zakat melalui QR internal;
-- transparansi berbasis data agregat tanpa membuka informasi finansial individual;
-- kesiapan operasional untuk proses penyediaan dan penonaktifan sistem setiap tahun.
+Fase 0 berupa penguncian arsitektur dan keamanan telah selesai. Repository saat ini berada pada Fase 1: skeleton Laravel dan Vue TypeScript, kontrak API awal, serta quality gate otomatis. Migration domain, container, autentikasi, dan UI produk belum diimplementasikan pada fase ini.
 
 ## Peran Pengguna
 
 ### Muzakki
 
-Muzakki dapat mendaftarkan keluarga, menghitung zakat fitrah atau zakat maal, membuat transaksi, menunjukkan QR kepada Amil, melihat status transaksi, dan membuka E-Kwitansi setelah zakat disahkan.
+Muzakki dapat mendaftarkan keluarga, menghitung zakat fitrah atau maal, membuat transaksi, menunjukkan QR kepada Amil, melihat status transaksi, dan membuka E-Kwitansi setelah zakat disahkan.
 
 ### Amil
 
-Amil dapat mencatat Muzakki secara langsung, memindai dan memverifikasi QR, mengesahkan penerimaan fisik zakat, serta melihat laporan operasional sesuai kewenangannya.
+Amil dapat mencatat Muzakki secara langsung, memindai QR, mengesahkan penerimaan fisik zakat, dan melihat laporan operasional sesuai kewenangannya.
 
 ### Super Admin
 
-Super Admin mengelola akun panitia, konfigurasi zakat tahunan, laporan agregat, dan pencatatan penyaluran zakat.
+Super Admin mengelola akun panitia, periode dan konfigurasi zakat, koreksi data final yang tercatat secara append-only, laporan agregat, serta distribusi zakat.
 
-## Teknologi Utama
+## Stack yang Dikunci
 
-- Vue 3 dan Vite untuk aplikasi web;
-- Tailwind CSS untuk sistem tampilan;
-- Laravel sebagai backend API;
-- PostgreSQL sebagai basis data utama;
-- Redis, Laravel Horizon, dan Laravel Reverb untuk antrean pekerjaan serta pembaruan waktu nyata;
-- Docker Compose untuk lingkungan pengembangan dan produksi;
-- PWA agar aplikasi nyaman digunakan melalui perangkat seluler.
+- Laravel 13.19.0 dan PHP 8.4;
+- Vue 3.5.39 dan TypeScript 5.9.3 dalam strict mode;
+- Vite 8.1.4 dan Tailwind CSS 4.3.2;
+- Node.js 24.18.0 LTS dan npm 11;
+- PostgreSQL 17 dan Redis 8.2 LTS;
+- Caddy 2.11 sebagai reverse proxy;
+- PHPUnit, Larastan, Laravel Pint, ESLint, Vitest, dan Playwright;
+- OpenAPI 3.1.2 sebagai kontrak integrasi frontend-backend.
+
+Versi PHP dan Node dikunci melalui manifest serta lockfile. Image container dan digest baru ditambahkan pada Fase 2.
+
+## Persyaratan Fase 1
+
+- PHP 8.4 beserta ekstensi standar Laravel;
+- Composer 2.9;
+- Node.js 24.18.0;
+- npm 11.
+
+Horizon membutuhkan `pcntl` dan `posix` pada Linux. Kedua ekstensi tersebut tidak tersedia secara native pada PHP Windows. Saat bekerja langsung di Windows, instalasi lokal dapat dilakukan dengan:
+
+```powershell
+composer install --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
+```
+
+Pengecualian ini hanya untuk workstation Windows. CI dan runtime Linux tetap menjalankan pemeriksaan requirement tanpa pengecualian.
+
+Docker belum menjadi prasyarat Fase 1. Lingkungan container lengkap disediakan pada Fase 2.
+
+## Bootstrap Repository
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+composer install --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
+npm.cmd ci
+php artisan key:generate
+npm.cmd run build
+```
+
+Linux atau WSL:
+
+```bash
+cp .env.example .env
+composer install
+npm ci
+php artisan key:generate
+npm run build
+```
+
+`.env.example` tidak berisi credential. Isi secret hanya pada `.env` lokal atau mekanisme secret production; jangan pernah memasukkannya ke commit.
+
+## Menjalankan Skeleton
+
+Gunakan dua terminal:
+
+```powershell
+php artisan serve
+```
+
+```powershell
+npm.cmd run dev
+```
+
+Skeleton frontend sengaja tidak memiliki UI produk. Elemen Vue tanpa konten hanya digunakan untuk membuktikan integrasi Laravel, Vite, TypeScript, dan browser smoke test.
+
+## Quality Gate Lokal
+
+Backend:
+
+```powershell
+composer quality
+composer audit --locked --abandoned=fail
+```
+
+Frontend dan kontrak:
+
+```powershell
+npm.cmd run quality
+npm.cmd audit --audit-level=high
+```
+
+Smoke test browser pertama kali membutuhkan Chromium Playwright:
+
+```powershell
+npx.cmd playwright install chromium
+npm.cmd run test:e2e
+```
+
+Perintah penting lainnya:
+
+- `npm run openapi:lint` memvalidasi kontrak;
+- `npm run openapi:types` menghasilkan type TypeScript dari OpenAPI;
+- `npm run typecheck` memeriksa strict TypeScript;
+- `npm run lint` menjalankan ESLint tanpa toleransi warning;
+- `npm run test` menjalankan unit test frontend;
+- `npm run build` membuktikan build production dapat direproduksi.
+
+## Kontrak API
+
+Kontrak awal berada di [`openapi/openapi.yaml`](openapi/openapi.yaml). Seluruh endpoint aplikasi memakai prefix `/api/v1`, kecuali endpoint CSRF Sanctum dan health check framework.
+
+Ketentuan utama kontrak:
+
+- autentikasi SPA menggunakan cookie session Sanctum dan CSRF;
+- error menggunakan RFC 9457 `application/problem+json`;
+- uang dan berat dikirim sebagai decimal string, bukan JSON float;
+- timestamp memakai RFC 3339 UTC dan nomor HP memakai E.164;
+- operasi finansial serta administratif sensitif memakai `Idempotency-Key`;
+- setiap operasi menyatakan policy tambahan melalui `x-arzzaq-policy`;
+- type boundary frontend dihasilkan ke `resources/js/api/schema.d.ts` dan tidak diedit manual.
+
+## Pemeriksaan CI
+
+GitHub Actions menjalankan:
+
+- validasi Composer dan requirement runtime Linux;
+- Laravel Pint, Larastan level 8, dan PHPUnit;
+- ESLint, strict TypeScript, Vitest, build Vite, dan Playwright;
+- lint serta sinkronisasi type OpenAPI;
+- audit Composer dan npm;
+- pemindaian vulnerability, secret, serta misconfiguration dengan Trivy;
+- pemindaian image otomatis setelah Dockerfile tersedia pada Fase 2.
+
+Seluruh action eksternal dipin ke commit SHA. Dependabot hanya mengusulkan pembaruan melalui pull request agar perubahan dependency tetap melewati review dan CI.
+
+## Struktur Utama
+
+```text
+app/                 kode backend Laravel
+bootstrap/           bootstrap framework dan middleware
+config/              konfigurasi aplikasi
+database/            migration dan seeder domain mulai Fase 3
+openapi/             kontrak API normatif
+resources/js/        skeleton Vue TypeScript dan type API hasil generate
+resources/views/     shell HTML minimum
+routes/              route web, API, dan console
+tests/               pengujian PHP dan browser
+.github/             CI dan kebijakan pembaruan dependency
+```
 
 ## Prinsip Pengembangan
 
-Pengembangan Arzzaq mengikuti prinsip berikut:
-
-- keamanan dan integritas data tidak boleh dikorbankan demi kecepatan implementasi;
-- aturan bisnis dan otorisasi selalu divalidasi oleh backend;
-- data pribadi yang tidak dibutuhkan tidak dikumpulkan;
-- perubahan data finansial harus memiliki jejak audit;
-- operasi kritis harus aman terhadap permintaan ganda dan kondisi balapan;
-- kode, pengujian, migrasi basis data, dan dokumentasi harus tetap sinkron;
-- fitur dibangun berdasarkan kebutuhan nyata dan tidak diperluas tanpa keputusan yang jelas.
-
-## Status Pengembangan
-
-Proyek sedang berada pada tahap persiapan implementasi. Kebutuhan produk, desain teknis, alur pengguna, keamanan, basis data, serta prosedur operasional telah disusun sebagai acuan pengembangan internal.
+- keamanan dan integritas data tidak dikorbankan demi kecepatan;
+- aturan bisnis dan otorisasi selalu divalidasi backend;
+- data pribadi dikumpulkan seminimal mungkin;
+- data finansial final tidak diubah atau dihapus tanpa jejak;
+- operasi kritis aman terhadap request ganda dan race condition;
+- dependency exact dikunci dan pembaruannya harus lolos audit serta CI;
+- UI produk dikerjakan setelah infra, database, autentikasi, dan domain stabil.
 
 ## Dokumentasi Internal
 
-Dokumen kebutuhan produk, desain teknis, kebijakan privasi, dan instruksi kerja pengembang dikelola secara lokal di luar riwayat Git publik. Dokumen tersebut sengaja tidak disertakan dalam repository ini karena memuat konteks operasional dan keamanan internal.
+Dokumen kebutuhan, desain teknis, threat model, RBAC, kebijakan privasi, dan instruksi AI Agent berada pada folder lokal `context/`. Folder tersebut sengaja diabaikan Git karena memuat konteks operasional serta keamanan internal.
 
 ## Keamanan
 
-Jangan memasukkan credential, token, berkas `.env`, data jemaah, salinan basis data, backup, atau dokumen operasional internal ke repository.
+Jangan memasukkan credential, token, `.env`, data jemaah, dump database, backup, private key, OTP, recovery code, PIN, raw QR token, atau dokumen internal ke repository.
 
-Temuan keamanan sebaiknya dilaporkan secara pribadi kepada pengelola proyek dan tidak dibuka melalui laporan publik sebelum tersedia mitigasi.
+Prosedur pelaporan kerentanan tersedia pada [`SECURITY.md`](SECURITY.md).
 
 ## Lisensi
 
-Status lisensi proyek belum ditetapkan. Seluruh hak atas kode dan materi proyek tetap berada pada pemilik proyek sampai dokumen lisensi resmi ditambahkan.
+Status lisensi publik belum ditetapkan. Seluruh hak atas kode dan materi proyek tetap berada pada pemilik proyek sampai dokumen lisensi resmi ditambahkan.

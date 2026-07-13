@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '02:00'
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 5
+    groups:
+      dependency-php:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '02:30'
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 5
+    groups:
+      dependency-node:
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ['*']
